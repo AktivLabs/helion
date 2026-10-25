@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Helion AI — Aktiv Labs</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            darkbg: '#090A0F',
+            cardbg: '#12131A',
+            bordercol: '#1E202C',
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #090A0F; }
+    ::-webkit-scrollbar-thumb { background: #1E202C; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2A2E3D; }
+  </style>
+</head>
+
+<body class="bg-darkbg text-slate-100 font-sans antialiased h-screen flex flex-col justify-between overflow-hidden">
+
+  <!-- TOP BAR (Grok Style) -->
+  <header class="border-b border-bordercol bg-darkbg/80 backdrop-blur-md px-6 py-3 flex items-center justify-between z-10">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-white text-darkbg flex items-center justify-center font-black text-sm tracking-tighter shadow-sm">
+        H
+      </div>
+      <div>
+        <h1 class="font-bold text-sm tracking-tight flex items-center gap-2">
+          HELION AI 
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">v1.0</span>
+        </h1>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="clearChat()" title="Nowa rozmowa" class="text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg border border-bordercol hover:border-zinc-700 transition-all">
+        Nowy chat
+      </button>
+    </div>
+  </header>
+
+  <!-- CHAT AREA -->
+  <main id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 max-w-3xl mx-auto w-full">
+    <!-- Wstępny komunikat -->
+    <div class="flex gap-4 items-start max-w-2xl mx-auto mt-12 text-center flex-col items-center">
+      <div class="w-12 h-12 rounded-2xl bg-zinc-900 border border-bordercol flex items-center justify-center text-white text-lg font-bold shadow-inner">
+        ⚡
+      </div>
+      <div>
+        <h2 class="text-xl font-bold tracking-tight text-white mb-2">Co masz na myśli?</h2>
+        <p class="text-xs text-zinc-400 max-w-md">Jestem Helion AI z ekosystemu Aktiv Labs. Napisz do mnie, a przeanalizuję Twój problem z pełną mocą modelu Llama.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- INPUT AREA (Grok Floating Bar) -->
+  <footer class="p-4 md:p-6 bg-gradient-to-t from-darkbg via-darkbg/90 to-transparent flex-shrink-0">
+    <div class="max-w-3xl mx-auto">
+      <form id="chatForm" onsubmit="handleSend(event)" class="relative bg-cardbg border border-bordercol rounded-2xl p-2 shadow-2xl focus-within:border-zinc-500 transition-all">
+        <textarea 
+          id="userInput" 
+          rows="1" 
+          placeholder="Napisz wiadomość do Heliona..." 
+          onkeydown="handleKeydown(event)"
+          class="w-full bg-transparent text-sm text-slate-100 placeholder-zinc-500 px-3 py-2 focus:outline-none resize-none max-h-32"
+        ></textarea>
+        <div class="flex items-center justify-between px-2 pt-1 border-t border-bordercol/50 mt-1">
+          <span class="text-[10px] text-zinc-500 font-mono">Aktiv Labs • Groq Powered</span>
+          <button 
+            type="submit" 
+            id="sendBtn"
+            class="bg-white hover:bg-zinc-200 text-darkbg font-bold p-2 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center w-8 h-8"
+          >
+            <i data-lucide="arrow-up" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </footer>
+
+  <script>
+    // ⚠️ TUTAJ WKLEJ SWÓJ ADRES Z VERCELA (np. https://helion-twojeimie.vercel.app/api/chat)
+    const VERCEL_PROXY_URL = 'https://TUTAJ_WKLEJ_ADRES_Z_VERCELA.vercel.app/api/chat';
+
+    let chatHistory = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+
+    function handleKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend(e);
+      }
+    }
+
+    async function handleSend(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById('userInput');
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      inputEl.value = '';
+      addMessage('user', text);
+      chatHistory.push({ role: 'user', content: text });
+
+      showTyping();
+
+      try {
+        const response = await fetch(VERCEL_PROXY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: chatHistory })
+        });
+
+        const data = await response.json();
+        removeTyping();
+
+        if (!response.ok) throw new Error(data.error || 'Błąd serwera');
+
+        const reply = data.choices[0].message.content;
+        addMessage('assistant', reply);
+        chatHistory.push({ role: 'assistant', content: reply });
+
+      } catch (err) {
+        removeTyping();
+        addMessage('assistant', '⚠️ Błąd połączenia z serwerem Vercel / Groq. Sprawdź, czy adres w kodzie (`VERCEL_PROXY_URL`) jest poprawny.');
+        console.error(err);
+      }
+    }
+
+    function addMessage(role, text) {
+      const container = document.getElementById('chatContainer');
+      const isUser = role === 'user';
+
+      const div = document.createElement('div');
+      div.className = `flex gap-4 items-start max-w-2xl mx-auto w-full ${isUser ? 'justify-end' : ''}`;
+
+      const avatar = isUser 
+        ? `<div class="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-300 flex-shrink-0">Ty</div>`
+        : `<div class="w-7 h-7 rounded-lg bg-white text-darkbg flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm">H</div>`;
+
+      const contentBox = document.createElement('div');
+      contentBox.className = `p-4 rounded-2xl text-sm leading-relaxed max-w-[85%] ${isUser ? 'bg-zinc-800 text-white rounded-tr-none' : 'bg-cardbg border border-bordercol text-slate-200 rounded-tl-none shadow-sm'}`;
+      contentBox.innerHTML = parseContent(text);
+
+      if (isUser) {
+        div.appendChild(contentBox);
+        div.innerHTML += avatar;
+      } else {
+        div.appendChild(avatar);
+        div.appendChild(contentBox);
+      }
+
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function showTyping() {
+      const container = document.getElementById('chatContainer');
+      const div = document.createElement('div');
+      div.id = 'typingIndicator';
+      div.className = 'flex gap-4 items-start max-w-2xl mx-auto w-full';
+      div.innerHTML = `
+        <div class="w-7 h-7 rounded-lg bg-white text-darkbg flex items-center justify-center text-xs font-bold flex-shrink-0">H</div>
+        <div class="bg-cardbg border border-bordercol p-4 rounded-2xl rounded-tl-none text-xs text-zinc-400 flex items-center gap-2">
+          <span class="animate-pulse">●</span>
+          <span class="animate-pulse delay-150">●</span>
+          <span class="animate-pulse delay-300">●</span>
+        </div>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function removeTyping() {
+      const el = document.getElementById('typingIndicator');
+      if (el) el.remove();
+    }
+
+    function parseContent(text) {
+      // Proste formatowanie kodu w markdownie ```kod```
+      let html = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (_, lang, code) => {
+        return `<pre class="bg-black/60 border border-bordercol p-3 rounded-xl my-2 overflow-x-auto font-mono text-xs text-zinc-300"><code>${code.trim()}</code></pre>`;
+      });
+
+      html = html.replace(/`([^`]+)`/g, '<code class="bg-zinc-800 text-zinc-200 px-1 py-0.5 rounded text-xs font-mono">$1</code>');
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-white">$1</strong>');
+      html = html.replace(/\n/g, '<br>');
+
+      return html;
+    }
+
+    function clearChat() {
+      chatHistory = [];
+      document.getElementById('chatContainer.innerHTML').innerHTML = ''; // czyszczenie
+      location.reload();
+    }
+  </script>
+</body>
+</html>
