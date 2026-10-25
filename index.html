@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl" class="dark">
+<html lang="pl" class="dark h-full">
 
 <head>
   <meta charset="utf-8">
@@ -13,9 +13,16 @@
       theme: {
         extend: {
           colors: {
-            darkbg: '#090A0F',
-            cardbg: '#12131A',
-            bordercol: '#1E202C',
+            grokBlack: '#000000',
+            grokPanel: '#09090b',
+            grokCard: '#121215',
+            grokBorder: '#27272a',
+            grokMuted: '#71717a',
+            grokAccent: '#ffffff',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
           }
         }
       }
@@ -24,83 +31,183 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: #090A0F; }
-    ::-webkit-scrollbar-thumb { background: #1E202C; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #2A2E3D; }
+    /* Custom Grok Scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+    .glass-panel { background: rgba(9, 9, 11, 0.85); backdrop-filter: blur(12px); }
   </style>
 </head>
 
-<body class="bg-darkbg text-slate-100 font-sans antialiased h-screen flex flex-col justify-between overflow-hidden">
+<body class="bg-grokBlack text-zinc-100 font-sans h-full flex overflow-hidden antialiased selection:bg-zinc-800 selection:text-white">
 
-  <!-- TOP BAR (Grok Style) -->
-  <header class="border-b border-bordercol bg-darkbg/80 backdrop-blur-md px-6 py-3 flex items-center justify-between z-10">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-lg bg-white text-darkbg flex items-center justify-center font-black text-sm tracking-tighter shadow-sm">
-        H
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="w-64 border-r border-grokBorder bg-grokPanel flex flex-col justify-between flex-shrink-0 transition-all duration-300 z-20">
+    <div class="p-3 flex flex-col h-full">
+      
+      <!-- Brand & New Chat -->
+      <div class="flex items-center justify-between mb-4 px-2 pt-1">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-white text-black font-black flex items-center justify-center text-base tracking-tighter shadow-md">
+            H
+          </div>
+          <div class="flex flex-col">
+            <span class="font-bold text-sm tracking-tight leading-none text-white">HELION</span>
+            <span class="text-[10px] text-grokMuted font-mono mt-0.5 tracking-wider uppercase">Aktiv Labs</span>
+          </div>
+        </div>
+        <button onclick="toggleSidebar()" class="text-grokMuted hover:text-white p-1 rounded-md hover:bg-zinc-800/60 md:hidden">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
       </div>
-      <div>
-        <h1 class="font-bold text-sm tracking-tight flex items-center gap-2">
-          HELION AI 
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">v1.0</span>
-        </h1>
-      </div>
-    </div>
-    <div class="flex items-center gap-2">
-      <button onclick="clearChat()" title="Nowa rozmowa" class="text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg border border-bordercol hover:border-zinc-700 transition-all">
-        Nowy chat
+
+      <button onclick="createNewChat()" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white border border-grokBorder rounded-xl p-2.5 text-xs font-semibold flex items-center gap-2 transition-all mb-4 shadow-sm group">
+        <i data-lucide="plus" class="w-4 h-4 text-grokMuted group-hover:text-white transition-colors"></i>
+        <span>Nowy czat</span>
       </button>
-    </div>
-  </header>
 
-  <!-- CHAT AREA -->
-  <main id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 max-w-3xl mx-auto w-full">
-    <!-- Wstępny komunikat -->
-    <div class="flex gap-4 items-start max-w-2xl mx-auto mt-12 text-center flex-col items-center">
-      <div class="w-12 h-12 rounded-2xl bg-zinc-900 border border-bordercol flex items-center justify-center text-white text-lg font-bold shadow-inner">
-        ⚡
+      <!-- History List -->
+      <div class="flex-1 overflow-y-auto space-y-1 pr-1" id="historyList">
+        <div class="text-[11px] font-semibold text-grokMuted uppercase tracking-wider px-2 py-1">Ostatnie czaty</div>
+        <!-- History items dynamically inserted here -->
       </div>
-      <div>
-        <h2 class="text-xl font-bold tracking-tight text-white mb-2">Co masz na myśli?</h2>
-        <p class="text-xs text-zinc-400 max-w-md">Jestem Helion AI z ekosystemu Aktiv Labs. Napisz do mnie, a przeanalizuję Twój problem z pełną mocą modelu Llama.</p>
-      </div>
-    </div>
-  </main>
 
-  <!-- INPUT AREA (Grok Floating Bar) -->
-  <footer class="p-4 md:p-6 bg-gradient-to-t from-darkbg via-darkbg/90 to-transparent flex-shrink-0">
-    <div class="max-w-3xl mx-auto">
-      <form id="chatForm" onsubmit="handleSend(event)" class="relative bg-cardbg border border-bordercol rounded-2xl p-2 shadow-2xl focus-within:border-zinc-500 transition-all">
-        <textarea 
-          id="userInput" 
-          rows="1" 
-          placeholder="Napisz wiadomość do Heliona..." 
-          onkeydown="handleKeydown(event)"
-          class="w-full bg-transparent text-sm text-slate-100 placeholder-zinc-500 px-3 py-2 focus:outline-none resize-none max-h-32"
-        ></textarea>
-        <div class="flex items-center justify-between px-2 pt-1 border-t border-bordercol/50 mt-1">
-          <span class="text-[10px] text-zinc-500 font-mono">Aktiv Labs • Groq Powered</span>
-          <button 
-            type="submit" 
-            id="sendBtn"
-            class="bg-white hover:bg-zinc-200 text-darkbg font-bold p-2 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center w-8 h-8"
-          >
-            <i data-lucide="arrow-up" class="w-4 h-4"></i>
+      <!-- User Profile Footer -->
+      <div class="pt-3 mt-auto border-t border-grokBorder/60 flex items-center justify-between px-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-300">
+            AL
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-white leading-none">Aktiv User</span>
+            <span class="text-[10px] text-grokMuted font-mono mt-0.5">Free Tier</span>
+          </div>
+        </div>
+        <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" title="System aktywny"></div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- MAIN CHAT CONTENT -->
+  <div class="flex-1 flex flex-col h-full relative overflow-hidden bg-grokBlack">
+    
+    <!-- TOP NAVBAR -->
+    <header class="h-14 border-b border-grokBorder glass-panel px-4 md:px-6 flex items-center justify-between z-10">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleSidebar()" class="text-grokMuted hover:text-white p-1.5 rounded-lg hover:bg-zinc-800/60 transition-colors">
+          <i data-lucide="panel-left" class="w-5 h-5"></i>
+        </button>
+        
+        <!-- Model Selector Dropdown -->
+        <div class="relative">
+          <select id="modelSelect" class="bg-zinc-900 border border-grokBorder text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-zinc-500 cursor-pointer appearance-none pr-8">
+            <option value="llama-3.3-70b-versatile">Helion Ultra (Llama 3.3 70B)</option>
+            <option value="llama-3.1-8b-instant">Helion Fast (Llama 3.1 8B)</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-grokMuted absolute right-2.5 top-2.5 pointer-events-none"></i>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] font-mono text-zinc-500 hidden sm:inline-block">Groq Proxy Connected</span>
+        <button onclick="clearCurrentChat()" title="Wyczyść konwersację" class="p-1.5 text-grokMuted hover:text-white rounded-lg hover:bg-zinc-800/60 transition-colors">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- CHAT MESSAGES CONTAINER -->
+    <main id="chatContainer" class="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6 max-w-4xl mx-auto w-full">
+      
+      <!-- WELCOME / PROMPT SUGGESTIONS (GROK STYLE) -->
+      <div id="welcomeScreen" class="flex flex-col items-center justify-center my-auto py-12 text-center space-y-6">
+        <div class="w-14 h-14 rounded-2xl bg-zinc-900 border border-grokBorder flex items-center justify-center text-white shadow-2xl">
+          <i data-lucide="sparkles" class="w-7 h-7 text-white"></i>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold tracking-tight text-white mb-1">Co chcesz dzisiaj odkryć?</h2>
+          <p class="text-xs text-grokMuted max-w-sm mx-auto">Helion AI jest gotowy do wsparcia Twojego projektu Aktiv Labs.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-2xl pt-4">
+          <button onclick="usePrompt('Napisz skrypt w Pythonie do pobierania danych z API')" class="p-3.5 rounded-xl bg-grokCard border border-grokBorder hover:border-zinc-600 text-left transition-all group">
+            <i data-lucide="code" class="w-4 h-4 text-grokMuted group-hover:text-white mb-2 transition-colors"></i>
+            <div class="text-xs font-medium text-zinc-200">Kod i Skrypty</div>
+            <div class="text-[11px] text-grokMuted mt-0.5">Napisz skrypt w Pythonie...</div>
+          </button>
+
+          <button onclick="usePrompt('Przeanalizuj pomysł na nową aplikację i podaj plan działania')" class="p-3.5 rounded-xl bg-grokCard border border-grokBorder hover:border-zinc-600 text-left transition-all group">
+            <i data-lucide="lightbulb" class="w-4 h-4 text-grokMuted group-hover:text-white mb-2 transition-colors"></i>
+            <div class="text-xs font-medium text-zinc-200">Plan Projektu</div>
+            <div class="text-[11px] text-grokMuted mt-0.5">Przeanalizuj pomysł na aplikację...</div>
+          </button>
+
+          <button onclick="usePrompt('Wykryj błędy w kodzie i wytłumacz jak je naprawić')" class="p-3.5 rounded-xl bg-grokCard border border-grokBorder hover:border-zinc-600 text-left transition-all group">
+            <i data-lucide="bug" class="w-4 h-4 text-grokMuted group-hover:text-white mb-2 transition-colors"></i>
+            <div class="text-xs font-medium text-zinc-200">Debugowanie</div>
+            <div class="text-[11px] text-grokMuted mt-0.5">Znajdź błędy w kodzie...</div>
           </button>
         </div>
-      </form>
-    </div>
-  </footer>
+      </div>
+
+    </main>
+
+    <!-- FLOATING INPUT BAR (GROK STYLE) -->
+    <footer class="p-4 md:p-6 bg-gradient-to-t from-grokBlack via-grokBlack/90 to-transparent flex-shrink-0">
+      <div class="max-w-3xl mx-auto">
+        <form id="chatForm" onsubmit="handleSend(event)" class="relative bg-grokCard border border-grokBorder rounded-2xl p-3 shadow-2xl focus-within:border-zinc-500 transition-all">
+          <textarea 
+            id="userInput" 
+            rows="1" 
+            placeholder="Zadaj pytanie Helionowi..." 
+            onkeydown="handleKeydown(event)"
+            oninput="autoResizeTextarea(this)"
+            class="w-full bg-transparent text-sm text-slate-100 placeholder-zinc-500 focus:outline-none resize-none max-h-40 pr-10"
+          ></textarea>
+
+          <div class="flex items-center justify-between pt-2 mt-1 border-t border-grokBorder/40">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] text-grokMuted font-mono">Aktiv Labs • Groq Engine</span>
+            </div>
+
+            <button 
+              type="submit" 
+              id="sendBtn"
+              class="bg-white hover:bg-zinc-200 text-black font-bold p-2 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center w-8 h-8 shadow-sm"
+            >
+              <i data-lucide="arrow-up" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </form>
+        <div id="errorToast" class="hidden mt-2 text-center text-xs text-rose-400 font-mono bg-rose-950/40 border border-rose-800/50 p-2 rounded-lg"></div>
+      </div>
+    </footer>
+
+  </div>
 
   <script>
-    // Automatycznie korzysta z tego samego serwera Vercel
-    const VERCEL_PROXY_URL = '/api/chat';
+    // Backend Vercel Endpoint (Używa lokalnej ścieżki w ramach tego samego serwera)
+    const BACKEND_URL = '/api/chat';
 
-    let chatHistory = [];
+    let currentMessages = [];
+    let chatHistory = JSON.parse(localStorage.getItem('helion_chats') || '[]');
 
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
+      renderHistoryList();
     });
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('-ml-64');
+    }
+
+    function autoResizeTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
 
     function handleKeydown(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -109,38 +216,62 @@
       }
     }
 
+    function usePrompt(text) {
+      document.getElementById('userInput').value = text;
+      handleSend(new Event('submit'));
+    }
+
     async function handleSend(e) {
-      e.preventDefault();
+      if (e) e.preventDefault();
+      
       const inputEl = document.getElementById('userInput');
       const text = inputEl.value.trim();
+      const model = document.getElementById('modelSelect').value;
+      const errorToast = document.getElementById('errorToast');
+
       if (!text) return;
 
+      errorToast.classList.add('hidden');
       inputEl.value = '';
-      addMessage('user', text);
-      chatHistory.push({ role: 'user', content: text });
+      inputEl.style.height = 'auto';
 
-      showTyping();
+      // Ukryj welcome screen przy pierwszej wiadomości
+      const welcome = document.getElementById('welcomeScreen');
+      if (welcome) welcome.remove();
+
+      // Dodaj wiadomość użytkownika
+      addMessage('user', text);
+      currentMessages.push({ role: 'user', content: text });
+
+      showTypingIndicator();
 
       try {
-        const response = await fetch(VERCEL_PROXY_URL, {
+        const response = await fetch(BACKEND_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: chatHistory })
+          body: JSON.stringify({ 
+            messages: currentMessages,
+            model: model 
+          })
         });
 
         const data = await response.json();
-        removeTyping();
+        removeTypingIndicator();
 
-        if (!response.ok) throw new Error(data.error || 'Błąd serwera');
+        if (!response.ok) {
+          throw new Error(data.error || 'Nieznany błąd backendu Vercel / Groq');
+        }
 
         const reply = data.choices[0].message.content;
         addMessage('assistant', reply);
-        chatHistory.push({ role: 'assistant', content: reply });
+        currentMessages.push({ role: 'assistant', content: reply });
+
+        saveCurrentChat();
 
       } catch (err) {
-        removeTyping();
-        addMessage('assistant', '⚠️ Błąd połączenia z serwerem Vercel / Groq.');
-        console.error(err);
+        removeTypingIndicator();
+        console.error('Błąd połączenia:', err);
+        showError('Błąd połączenia: ' + err.message + '. Upewnij się, że wkleiłeś klucz GROQ_API_KEY w Vercelu!');
       }
     }
 
@@ -149,70 +280,151 @@
       const isUser = role === 'user';
 
       const div = document.createElement('div');
-      div.className = `flex gap-4 items-start max-w-2xl mx-auto w-full ${isUser ? 'justify-end' : ''}`;
+      div.className = `flex gap-3.5 items-start max-w-3xl mx-auto w-full ${isUser ? 'justify-end' : 'justify-start'}`;
 
       const avatar = isUser 
-        ? `<div class="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-300 flex-shrink-0">Ty</div>`
-        : `<div class="w-7 h-7 rounded-lg bg-white text-darkbg flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm">H</div>`;
+        ? `<div class="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-300 flex-shrink-0">TY</div>`
+        : `<div class="w-7 h-7 rounded-lg bg-white text-black font-black flex items-center justify-center text-xs flex-shrink-0 shadow-sm">H</div>`;
 
       const contentBox = document.createElement('div');
-      contentBox.className = `p-4 rounded-2xl text-sm leading-relaxed max-w-[85%] ${isUser ? 'bg-zinc-800 text-white rounded-tr-none' : 'bg-cardbg border border-bordercol text-slate-200 rounded-tl-none shadow-sm'}`;
-      contentBox.innerHTML = parseContent(text);
+      contentBox.className = `p-4 rounded-2xl text-sm leading-relaxed max-w-[85%] ${
+        isUser 
+          ? 'bg-zinc-800/90 text-white border border-zinc-700/60 rounded-tr-none' 
+          : 'bg-grokCard border border-grokBorder text-zinc-200 rounded-tl-none shadow-sm'
+      }`;
+      
+      contentBox.innerHTML = parseMarkdown(text);
 
       if (isUser) {
         div.appendChild(contentBox);
         div.innerHTML += avatar;
       } else {
-        div.appendChild(avatar);
+        div.appendChild(parseHTML(avatar));
         div.appendChild(contentBox);
       }
 
       container.appendChild(div);
       container.scrollTop = container.scrollHeight;
+      lucide.createIcons();
     }
 
-    function showTyping() {
+    function parseHTML(str) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = str;
+      return tmp.firstElementChild;
+    }
+
+    function showTypingIndicator() {
       const container = document.getElementById('chatContainer');
       const div = document.createElement('div');
       div.id = 'typingIndicator';
-      div.className = 'flex gap-4 items-start max-w-2xl mx-auto w-full';
+      div.className = 'flex gap-3.5 items-start max-w-3xl mx-auto w-full';
       div.innerHTML = `
-        <div class="w-7 h-7 rounded-lg bg-white text-darkbg flex items-center justify-center text-xs font-bold flex-shrink-0">H</div>
-        <div class="bg-cardbg border border-bordercol p-4 rounded-2xl rounded-tl-none text-xs text-zinc-400 flex items-center gap-2">
-          <span class="animate-pulse">●</span>
-          <span class="animate-pulse delay-150">●</span>
-          <span class="animate-pulse delay-300">●</span>
+        <div class="w-7 h-7 rounded-lg bg-white text-black font-black flex items-center justify-center text-xs flex-shrink-0">H</div>
+        <div class="bg-grokCard border border-grokBorder p-3.5 rounded-2xl rounded-tl-none text-xs text-grokMuted flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse [animation-delay:200ms]"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse [animation-delay:400ms]"></span>
         </div>
       `;
       container.appendChild(div);
       container.scrollTop = container.scrollHeight;
     }
 
-    function removeTyping() {
+    function removeTypingIndicator() {
       const el = document.getElementById('typingIndicator');
       if (el) el.remove();
     }
 
-    function parseContent(text) {
+    function parseMarkdown(text) {
       let html = text
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
+      // Bloki kodu
       html = html.replace(/```([a-z]*)\n([\s\S]*?)```/g, (_, lang, code) => {
-        return `<pre class="bg-black/60 border border-bordercol p-3 rounded-xl my-2 overflow-x-auto font-mono text-xs text-zinc-300"><code>${code.trim()}</code></pre>`;
+        return `<div class="my-3 rounded-xl border border-grokBorder bg-black overflow-hidden font-mono text-xs">
+          <div class="bg-zinc-900/80 px-3 py-1.5 border-b border-grokBorder text-grokMuted text-[10px] uppercase tracking-wider flex justify-between items-center">
+            <span>${lang || 'code'}</span>
+            <button onclick="navigator.clipboard.writeText(\`${code.replace(/`/g, '\\`')}\`)" class="hover:text-white transition-colors">Kopiuj</button>
+          </div>
+          <pre class="p-3 overflow-x-auto text-zinc-300"><code>${code.trim()}</code></pre>
+        </div>`;
       });
 
-      html = html.replace(/`([^`]+)`/g, '<code class="bg-zinc-800 text-zinc-200 px-1 py-0.5 rounded text-xs font-mono">$1</code>');
+      // Inline code
+      html = html.replace(/`([^`]+)`/g, '<code class="bg-zinc-800 text-zinc-200 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>');
+      // Pogrubienie
       html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-white">$1</strong>');
+      // Entery
       html = html.replace(/\n/g, '<br>');
 
       return html;
     }
 
-    function clearChat() {
-      chatHistory = [];
+    function showError(msg) {
+      const toast = document.getElementById('errorToast');
+      toast.innerText = msg;
+      toast.classList.remove('hidden');
+    }
+
+    function saveCurrentChat() {
+      if (currentMessages.length === 0) return;
+      const title = currentMessages[0].content.substring(0, 24) + '...';
+      const existingIndex = chatHistory.findIndex(c => c.id === currentChatId);
+
+      if (existingIndex >= 0) {
+        chatHistory[existingIndex].messages = currentMessages;
+      } else {
+        const id = Date.now().toString();
+        currentChatId = id;
+        chatHistory.unshift({ id, title, messages: currentMessages });
+      }
+
+      localStorage.setItem('helion_chats', JSON.stringify(chatHistory));
+      renderHistoryList();
+    }
+
+    let currentChatId = null;
+
+    function renderHistoryList() {
+      const list = document.getElementById('historyList');
+      const items = list.querySelectorAll('.history-item');
+      items.forEach(i => i.remove());
+
+      chatHistory.forEach(chat => {
+        const btn = document.createElement('button');
+        btn.className = 'history-item w-full text-left p-2 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-zinc-800/50 truncate transition-colors flex items-center gap-2';
+        btn.innerHTML = `<i data-lucide="message-square" class="w-3.5 h-3.5 text-grokMuted flex-shrink-0"></i><span class="truncate">${chat.title}</span>`;
+        btn.onclick = () => loadChat(chat.id);
+        list.appendChild(btn);
+      });
+      lucide.createIcons();
+    }
+
+    function loadChat(id) {
+      const chat = chatHistory.find(c => c.id === id);
+      if (!chat) return;
+      currentChatId = id;
+      currentMessages = chat.messages;
+
+      const container = document.getElementById('chatContainer');
+      container.innerHTML = '';
+
+      currentMessages.forEach(m => addMessage(m.role, m.content));
+    }
+
+    function createNewChat() {
+      currentMessages = [];
+      currentChatId = null;
       location.reload();
+    }
+
+    function clearCurrentChat() {
+      if (confirm('Czy na pewno chcesz wyczyścić ten czat?')) {
+        createNewChat();
+      }
     }
   </script>
 </body>
