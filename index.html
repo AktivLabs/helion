@@ -93,8 +93,8 @@
   </footer>
 
   <script>
-    // ⚠️ TUTAJ WKLEJ SWÓJ ADRES Z VERCELA (np. https://helion-twojeimie.vercel.app/api/chat)
-    const VERCEL_PROXY_URL = 'https://TUTAJ_WKLEJ_ADRES_Z_VERCELA.vercel.app/api/chat';
+    // Automatycznie korzysta z tego samego serwera Vercel
+    const VERCEL_PROXY_URL = '/api/chat';
 
     let chatHistory = [];
 
@@ -139,7 +139,7 @@
 
       } catch (err) {
         removeTyping();
-        addMessage('assistant', '⚠️ Błąd połączenia z serwerem Vercel / Groq. Sprawdź, czy adres w kodzie (`VERCEL_PROXY_URL`) jest poprawny.');
+        addMessage('assistant', '⚠️ Błąd połączenia z serwerem Vercel / Groq.');
         console.error(err);
       }
     }
@@ -194,7 +194,6 @@
     }
 
     function parseContent(text) {
-      // Proste formatowanie kodu w markdownie ```kod```
       let html = text
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -213,7 +212,6 @@
 
     function clearChat() {
       chatHistory = [];
-      document.getElementById('chatContainer.innerHTML').innerHTML = ''; // czyszczenie
       location.reload();
     }
   </script>
